@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Remote Control</title>
+</head>
+<body>
+    <button onclick="sendCommand('move_mouse', {x: 200, y: 200})">Move Mouse</button>
+    <button onclick="sendCommand('type', {text: 'Hello'})">Type Hello</button>
+
+    <script>
+        const API_URL = "http://47.155.207.215:5000/control";  // Replace with your actual PC IP
+
+        function sendCommand(action, params) {
+            fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key: "your_custom_key", action, ...params })
+            }).then(res => res.json()).then(console.log);
+        }
+    </script>
+</body>
+</html>
