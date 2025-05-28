@@ -1,21 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Remote Control</title>
+    <title>Remote Logger</title>
 </head>
 <body>
-    <button onclick="sendCommand('move_mouse', {x: 200, y: 200})">Move Mouse</button>
-    <button onclick="sendCommand('type', {text: 'Hello'})">Type Hello</button>
+    <input type="password" id="securityKey" placeholder="Enter key">
+    <button onclick="connect()">Connect</button>
+    <button onclick="logHi()" disabled>Say Hi</button>
+    <button onclick="disconnect()" disabled>Disconnect</button>
 
     <script>
-        const API_URL = "http://47.155.207.215:5000/control";  // Replace with your actual PC IP
+        const API_URL = "http://your-pc-ip:5000"; // Replace with actual PC IP
+        let authenticated = false;
 
-        function sendCommand(action, params) {
-            fetch(API_URL, {
+        function connect() {
+            const key = document.getElementById("securityKey").value;
+            fetch(`${API_URL}/connect`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ key: "your_custom_key", action, ...params })
+                body: JSON.stringify({ key })
+            }).then(res => res.json()).then(data => {
+                if (data.status === "connected") {
+                    authenticated = true;
+                    document.querySelectorAll("button:not(:first-child)").forEach(btn => btn.disabled = false);
+                    alert("Connected!");
+                } else {
+                    alert("Invalid key!");
+                }
+            });
+        }
+
+        function logHi() {
+            if (!authenticated) return alert("Please connect first!");
+            fetch(`${API_URL}/log_hi`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key: document.getElementById("securityKey").value })
             }).then(res => res.json()).then(console.log);
+        }
+
+        function disconnect() {
+            fetch(`${API_URL}/disconnect`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key: document.getElementById("securityKey").value })
+            }).then(res => res.json()).then(data => {
+                if (data.status === "disconnected") {
+                    authenticated = false;
+                    document.querySelectorAll("button:not(:first-child)").forEach(btn => btn.disabled = true);
+                    alert("Disconnected!");
+                }
+            });
         }
     </script>
 </body>
