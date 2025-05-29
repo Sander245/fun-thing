@@ -1,56 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Remote Logger</title>
+    <title>Remote Control</title>
 </head>
 <body>
     <input type="password" id="securityKey" placeholder="Enter key">
-    <button onclick="connect()">Connect</button>
-    <button onclick="logHi()" disabled>Say Hi</button>
-    <button onclick="disconnect()" disabled>Disconnect</button>
+    <button onclick="authenticate()">Connect</button>
+    <button onclick="sendCommand('move_mouse', {x: 200, y: 200})" disabled>Move Mouse</button>
+    <button onclick="sendCommand('type', {text: 'Hello'})" disabled>Type Hello</button>
 
     <script>
-        const API_URL = "http://your-pc-ip:5000"; // Replace with actual PC IP
+        const socket = new WebSocket("ws://192.168.254.164:5000");
         let authenticated = false;
 
-        function connect() {
+        socket.onopen = () => console.log("Connected to WebSocket server!");
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.status === "connected") {
+                authenticated = true;
+                document.querySelectorAll("button:not(:first-child)").forEach(btn => btn.disabled = false);
+                alert("Connected!");
+            } else if (data.status === "failed") {
+                alert("Invalid key!");
+            }
+        };
+
+        function authenticate() {
             const key = document.getElementById("securityKey").value;
-            fetch(`${API_URL}/connect`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ key })
-            }).then(res => res.json()).then(data => {
-                if (data.status === "connected") {
-                    authenticated = true;
-                    document.querySelectorAll("button:not(:first-child)").forEach(btn => btn.disabled = false);
-                    alert("Connected!");
-                } else {
-                    alert("Invalid key!");
-                }
-            });
+            socket.send(JSON.stringify({ event: "authenticate", key }));
         }
 
-        function logHi() {
+        function sendCommand(action, params) {
             if (!authenticated) return alert("Please connect first!");
-            fetch(`${API_URL}/log_hi`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ key: document.getElementById("securityKey").value })
-            }).then(res => res.json()).then(console.log);
-        }
-
-        function disconnect() {
-            fetch(`${API_URL}/disconnect`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ key: document.getElementById("securityKey").value })
-            }).then(res => res.json()).then(data => {
-                if (data.status === "disconnected") {
-                    authenticated = false;
-                    document.querySelectorAll("button:not(:first-child)").forEach(btn => btn.disabled = true);
-                    alert("Disconnected!");
-                }
-            });
+            socket.send(JSON.stringify({ event: "command", key: document.getElementById("securityKey").value, action, ...params }));
         }
     </script>
 </body>
